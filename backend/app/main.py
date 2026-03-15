@@ -1,9 +1,9 @@
-from fastapi import Depends, FastAPI, Header
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user, router as auth_router
-from app.db.database import Base, engine, get_db
+from app.api.connections import router as connections_router
+from app.db.database import Base, engine
 from app.schemas.user import UserResponse
 
 Base.metadata.create_all(bind=engine)
@@ -19,6 +19,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(connections_router)
 
 
 @app.get("/health")
@@ -27,8 +28,5 @@ def health_check():
 
 
 @app.get("/me", response_model=UserResponse)
-def me(
-    authorization: str = Header(...),
-    db: Session = Depends(get_db),
-):
-    return get_current_user(authorization, db)
+def me(current_user=Depends(get_current_user)):
+    return current_user

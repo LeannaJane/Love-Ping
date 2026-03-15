@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
@@ -11,9 +12,11 @@ from app.core.security import (
 )
 from app.db.database import get_db
 from app.models.user import User
-from app.schemas.user import TokenResponse, UserLogin, UserRegister, UserResponse
+from app.schemas.user import TokenResponse, UserLogin, UserRegister
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+security = HTTPBearer()
+
 
 def get_unique_invite_code(db: Session) -> str:
     while True:
@@ -71,13 +74,12 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 
 
 def get_current_user(
-    authorisation: str,
-    db: Session,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
 ) -> User:
+    token = credentials.credentials
+
     try:
-        scheme, token = authorisation.split(" ")
-        if scheme.lower() != "bearer":
-            raise ValueError("Invalid auth scheme")
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         user_id = payload.get("sub")
         if not user_id:
@@ -94,4 +96,5 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
+
     return user
