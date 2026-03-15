@@ -30,9 +30,6 @@ export default function RegisterPage() {
         password,
       });
 
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
       setMessage(
         `Welcome ${data.user.display_name}! Your invite code is ${data.user.invite_code}`
       );
@@ -42,7 +39,7 @@ export default function RegisterPage() {
       setPassword("");
 
       setTimeout(() => {
-        navigate("/");
+        navigate("/login", { replace: true });
       }, 1200);
     } catch (err) {
       const message =

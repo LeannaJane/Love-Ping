@@ -1,22 +1,20 @@
-import type { AuthResponse, LoginPayload, RegisterPayload, User } from "../types/auth";
+import type {
+  AuthResponse,
+  LoginPayload,
+  RegisterPayload,
+  User,
+} from "../types/auth";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
-export async function registerUser(payload: RegisterPayload): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+async function handleResponse(response: Response) {
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.detail || "Registration failed");
+    throw new Error(data?.detail || "Something went wrong");
   }
 
-  return response.json();
+  return data;
 }
 
 export async function loginUser(payload: LoginPayload): Promise<AuthResponse> {
@@ -28,25 +26,40 @@ export async function loginUser(payload: LoginPayload): Promise<AuthResponse> {
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.detail || "Login failed");
-  }
-
-  return response.json();
+  const data = await handleResponse(response);
+  localStorage.setItem("token", data.access_token);
+  return data;
 }
 
-export async function getMe(token: string): Promise<User> {
+export async function registerUser(
+  payload: RegisterPayload
+): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await handleResponse(response);
+  localStorage.setItem("token", data.access_token);
+  return data;
+}
+
+export async function getMe(): Promise<User> {
+  const token = localStorage.getItem("token");
+
   const response = await fetch(`${API_BASE_URL}/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.detail || "Could not fetch user");
-  }
+  return handleResponse(response);
+}
 
-  return response.json();
+export async function logoutUser() {
+  localStorage.removeItem("token");
+  return { message: "Logged out" };
 }
