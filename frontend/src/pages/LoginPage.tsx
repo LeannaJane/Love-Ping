@@ -34,7 +34,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-pink-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+      <div className="max-w-md w-full bg-white p-8 shadow-lg">
         <h1 className="text-3xl font-bold text-pink-600">Login</h1>
         <p className="mt-2 text-gray-600">Sign in to your LovePing account.</p>
 
