@@ -27,6 +27,15 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
+def create_refresh_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(
+        days=settings.refresh_token_expire_days
+    )
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+
+
 def generate_invite_code(length: int = 8) -> str:
     chars = string.ascii_uppercase + string.digits
     return "".join(random.choices(chars, k=length))
