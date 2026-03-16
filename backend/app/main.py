@@ -3,7 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import get_current_user, router as auth_router
 from app.api.connections import router as connections_router
+from app.api.dashboard import router as dashboard_router
 from app.db.database import Base, engine
+from app.models.mood import Mood
+from app.models.ping import Ping
+from app.models.user import User
 from app.schemas.user import UserResponse
 
 Base.metadata.create_all(bind=engine)
@@ -20,6 +24,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(connections_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/health")

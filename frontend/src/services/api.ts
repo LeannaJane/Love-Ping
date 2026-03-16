@@ -2,28 +2,36 @@ import type { AuthResponse } from "../types/auth";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
+function withAuthHeaders(headers?: HeadersInit): Headers {
+  const mergedHeaders = new Headers(headers);
+  const token = localStorage.getItem("token");
+
+  if (token && !mergedHeaders.has("Authorization")) {
+    mergedHeaders.set("Authorization", `Bearer ${token}`);
+  }
+
+  return mergedHeaders;
+}
+
 export async function fetchWithRetry(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  let response = await fetch(url, options);
+  const makeRequest = () =>
+    fetch(url, {
+      ...options,
+      headers: withAuthHeaders(options.headers),
+    });
+
+  let response = await makeRequest();
 
   if (response.status === 401) {
-    // Avoid circular dependency - import here
-    
     try {
       await refreshToken();
-      // Retry with new token
-      const token = localStorage.getItem("token");
-      response = await fetch(url, {
-        ...options,
-        headers: {
-          ...options.headers,
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      response = await makeRequest();
     } catch (error) {
-      // If refresh fails, redirect to login
+      localStorage.removeItem("token");
+      setCookie("refreshToken", "", -1);
       window.location.href = "/login";
       throw error;
     }
@@ -33,13 +41,20 @@ export async function fetchWithRetry(
 }
 
 export async function refreshToken(): Promise<AuthResponse> {
-  const refreshToken = getCookie("refreshToken");
+  const refreshTokenValue = getCookie("refreshToken");
+
+  if (!refreshTokenValue) {
+    throw new Error("Missing refresh token");
+  }
 
   const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${refreshToken}`,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      refresh_token: refreshTokenValue,
+    }),
   });
 
   const data = await handleResponse(response);
@@ -62,21 +77,15 @@ export function getCookie(name: string): string | null {
 }
 
 export async function handleResponse(response: Response) {
-  console.log("Response status:", response.status);
-  console.log("Response ok:", response.ok);
-  
-  let data;
-  try {
-    data = await response.json();
-    console.log("Parsed JSON:", data);
-  } catch (error) {
-    console.error("JSON parse error:", error);
-    data = null;
-  }
+  let data = null;
+  const contentType = response.headers.get("content-type");
 
-  // if 401, refresh and retry once
-  if (response.status == 401) {
-    refreshToken();
+  if (contentType?.includes("application/json")) {
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
   }
 
   if (!response.ok) {

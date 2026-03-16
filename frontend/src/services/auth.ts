@@ -36,17 +36,12 @@ export async function registerUser(
 
   const data = await handleResponse(response);
   localStorage.setItem("token", data.access_token);
+  setCookie("refreshToken", data.refresh_token);
   return data;
 }
 
 export async function getMe(): Promise<User> {
-  const token = localStorage.getItem("token");
-
-  const response = await fetchWithRetry(`${API_BASE_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await fetchWithRetry(`${API_BASE_URL}/me`);
 
   return handleResponse(response);
 }
