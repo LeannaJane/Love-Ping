@@ -4,33 +4,9 @@ import type {
   RegisterPayload,
   User,
 } from "../types/auth";
+import { fetchWithRetry, handleResponse, setCookie } from "./api";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
-
-function setCookie(name: string, value: string, days: number = 7) {
-  const expires = new Date();
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
-}
-
-function getCookie(name: string): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
-
-async function handleResponse(response: Response) {
-  const data = await response.json().catch(() => null);
-
-  // if 401, refresh and retry once
-
-  if (!response.ok) {
-    throw new Error(data?.detail || "Something went wrong");
-  }
-
-  return data;
-}
 
 export async function loginUser(payload: LoginPayload): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -66,28 +42,13 @@ export async function registerUser(
 export async function getMe(): Promise<User> {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`${API_BASE_URL}/me`, {
+  const response = await fetchWithRetry(`${API_BASE_URL}/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
   return handleResponse(response);
-}
-
-export async function refreshToken(): Promise<AuthResponse> {
-  const refreshToken = getCookie("refreshToken");
-
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-    headers: {
-      Authorization: `Bearer ${refreshToken}`,
-    },
-  });
-
-  const data = await handleResponse(response);
-  localStorage.setItem("token", data.access_token);
-  setCookie("refreshToken", data.refresh_token);
-  return data;
 }
 
 export async function logoutUser() {

@@ -4,6 +4,7 @@ import AuthCard from "../../components/auth/AuthCard";
 import AuthInput from "../../components/auth/AuthInput";
 import BackLink from "../../components/auth/BackLink";
 import AuthLayout from "../../layout/AuthLayout";
+import { loginUser } from "../../services/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -20,28 +21,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.detail || "Login failed");
-        return;
-      }
+      await loginUser({ email, password });
 
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login error:", err);
-      setError("Something went wrong");
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
