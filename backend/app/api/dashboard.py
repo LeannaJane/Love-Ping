@@ -151,16 +151,16 @@ def get_dashboard(
             )
         )
 
-    for mood in recent_moods:
-        feed.append(
-            FeedItem(
-                id=100000 + mood.id,
-                type="mood",
-                text=f"Mood check-in: {mood.mood}",
-                created_at=mood.created_at,
-                is_mine=True,
-            )
-        )
+    # for mood in recent_moods:
+    #     feed.append(
+    #         FeedItem(
+    #             id=100000 + mood.id,
+    #             type="mood",
+    #             text=f"Mood check-in: {mood.mood}",
+    #             created_at=mood.created_at,
+    #             is_mine=True,
+    #         )
+    #     )
 
     feed.sort(key=lambda item: item.created_at, reverse=True)
     feed = feed[:10]

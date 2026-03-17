@@ -99,10 +99,45 @@ export default function DashboardPage() {
   }, [navigate]);
 
   useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = 0;
+    if (!user) {
+      return;
     }
-  }, [dashboard?.recent_activity]);
+
+    const intervalId = window.setInterval(() => {
+      loadDashboard().catch((error) => {
+        console.error("Auto-refresh dashboard error:", error);
+      });
+    }, 3000);
+
+    const handleFocus = () => {
+      loadDashboard().catch((error) => {
+        console.error("Focus refresh dashboard error:", error);
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadDashboard().catch((error) => {
+          console.error("Visibility refresh dashboard error:", error);
+        });
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user]);
+
+  // useEffect(() => {
+  //   if (chatRef.current) {
+  //     chatRef.current.scrollTop = 0;
+  //   }
+  // }, [dashboard?.recent_activity]);
 
   async function handleConnect() {
     const cleanedCode = inviteCodeInput.trim().toUpperCase();
@@ -474,10 +509,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div
-                ref={chatRef}
-                className="max-h-[420px] overflow-y-auto pr-2"
-              >
+              <div ref={chatRef} className="max-h-[420px] overflow-y-auto pr-2">
                 {dashboard.recent_activity.length === 0 ? (
                   <div className="flex min-h-[220px] items-center justify-center">
                     <div className="max-w-sm rounded-3xl bg-white px-6 py-5 text-center shadow-sm">
