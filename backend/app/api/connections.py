@@ -12,6 +12,21 @@ from app.schemas.user import UserResponse
 router = APIRouter(prefix="/connections", tags=["connections"])
 
 
+def get_user_connection(db: Session, user_id: int) -> Connection | None:
+    return (
+        db.query(Connection)
+        .filter(
+            Connection.status == "accepted",
+            or_(
+                Connection.requester_id == user_id,
+                Connection.receiver_id == user_id,
+            ),
+        )
+        .order_by(Connection.created_at.desc())
+        .first()
+    )
+
+
 @router.post("/connect", response_model=ConnectionResponse)
 def connect_by_invite_code(
     payload: ConnectByCodeRequest,
@@ -30,6 +45,20 @@ def connect_by_invite_code(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You cannot connect to yourself",
+        )
+
+    current_user_existing_connection = get_user_connection(db, current_user.id)
+    if current_user_existing_connection:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are already connected to a partner. Unlink first to connect with someone else.",
+        )
+
+    target_user_existing_connection = get_user_connection(db, target_user.id)
+    if target_user_existing_connection:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="That user is already connected to a partner.",
         )
 
     existing_connection = (
@@ -67,16 +96,7 @@ def get_my_connection(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    connection = (
-        db.query(Connection)
-        .filter(
-            or_(
-                Connection.requester_id == current_user.id,
-                Connection.receiver_id == current_user.id,
-            )
-        )
-        .first()
-    )
+    connection = get_user_connection(db, current_user.id)
 
     if not connection:
         return {"connected": False, "connection": None}
@@ -96,4 +116,40 @@ def get_my_connection(
             "status": connection.status,
             "partner": UserResponse.model_validate(partner).model_dump(),
         },
+    }
+
+
+@router.delete("/unlink")
+def unlink_partner(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    connections = (
+        db.query(Connection)
+        .filter(
+            Connection.status == "accepted",
+            or_(
+                Connection.requester_id == current_user.id,
+                Connection.receiver_id == current_user.id,
+            ),
+        )
+        .all()
+    )
+
+    if not connections:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You are not connected to a partner.",
+        )
+
+    deleted_count = len(connections)
+
+    for connection in connections:
+        db.delete(connection)
+
+    db.commit()
+
+    return {
+        "message": "Partner unlinked successfully",
+        "deleted_connections": deleted_count,
     }

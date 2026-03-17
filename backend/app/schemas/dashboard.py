@@ -1,29 +1,23 @@
 from datetime import datetime
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
 
 
 class PartnerResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     display_name: str
     email: str
 
-    class Config:
-        from_attributes = True
-
-
-class PingCreate(BaseModel):
-    ping_type: str
-
-
-class MoodCreate(BaseModel):
-    mood: str
-
 
 class FeedItem(BaseModel):
     id: int
-    type: str
+    type: Literal["ping", "mood"]
     text: str
     created_at: datetime
+    is_mine: bool
 
 
 class DashboardResponse(BaseModel):
@@ -37,3 +31,11 @@ class DashboardResponse(BaseModel):
     streak: int
     love_score: int
     recent_activity: list[FeedItem]
+
+
+class PingCreate(BaseModel):
+    ping_type: str
+
+
+class MoodCreate(BaseModel):
+    mood: str

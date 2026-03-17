@@ -1,13 +1,22 @@
 from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
 from app.db.database import get_db
+from app.models.connection import Connection
 from app.models.mood import Mood
 from app.models.ping import Ping
 from app.models.user import User
-from app.schemas.dashboard import DashboardResponse, FeedItem, MoodCreate, PartnerResponse, PingCreate
+from app.schemas.dashboard import (
+    DashboardResponse,
+    FeedItem,
+    MoodCreate,
+    PartnerResponse,
+    PingCreate,
+)
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -23,8 +32,6 @@ PING_TEXT_MAP = {
 
 
 def calculate_streak(db: Session, user: User) -> int:
-    # simple MVP version:
-    # count distinct days where user either sent a ping or posted a mood
     ping_days = {
         row[0]
         for row in db.query(Ping.created_at)
@@ -62,6 +69,31 @@ def calculate_streak(db: Session, user: User) -> int:
     return streak
 
 
+def get_partner_from_connection(db: Session, current_user: User) -> User | None:
+    connection = (
+        db.query(Connection)
+        .filter(
+            Connection.status == "accepted",
+            or_(
+                Connection.requester_id == current_user.id,
+                Connection.receiver_id == current_user.id,
+            ),
+        )
+        .first()
+    )
+
+    if not connection:
+        return None
+
+    partner_id = (
+        connection.receiver_id
+        if connection.requester_id == current_user.id
+        else connection.requester_id
+    )
+
+    return db.query(User).filter(User.id == partner_id).first()
+
+
 @router.get("", response_model=DashboardResponse)
 def get_dashboard(
     db: Session = Depends(get_db),
@@ -83,7 +115,9 @@ def get_dashboard(
 
     recent_pings = (
         db.query(Ping)
-        .filter((Ping.sender_id == current_user.id) | (Ping.receiver_id == current_user.id))
+        .filter(
+            (Ping.sender_id == current_user.id) | (Ping.receiver_id == current_user.id)
+        )
         .order_by(Ping.created_at.desc())
         .limit(10)
         .all()
@@ -113,6 +147,7 @@ def get_dashboard(
                 type="ping",
                 text=text,
                 created_at=ping.created_at,
+                is_mine=is_sender,
             )
         )
 
@@ -123,15 +158,15 @@ def get_dashboard(
                 type="mood",
                 text=f"Mood check-in: {mood.mood}",
                 created_at=mood.created_at,
+                is_mine=True,
             )
         )
 
     feed.sort(key=lambda item: item.created_at, reverse=True)
     feed = feed[:10]
 
-    partner = None
-    if current_user.partner:
-        partner = PartnerResponse.model_validate(current_user.partner)
+    partner_user = get_partner_from_connection(db, current_user)
+    partner = PartnerResponse.model_validate(partner_user) if partner_user else None
 
     return DashboardResponse(
         user_id=current_user.id,
@@ -142,7 +177,7 @@ def get_dashboard(
         current_mood=latest_mood.mood if latest_mood else None,
         last_ping=latest_ping.ping_type if latest_ping else None,
         streak=calculate_streak(db, current_user),
-        love_score=98,  # temporary until you build real logic
+        love_score=98,
         recent_activity=feed,
     )
 
@@ -153,12 +188,17 @@ def create_ping(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not current_user.partner_id:
-        raise HTTPException(status_code=400, detail="You are not connected to a partner yet.")
+    partner_user = get_partner_from_connection(db, current_user)
+
+    if not partner_user:
+        raise HTTPException(
+            status_code=400,
+            detail="You are not connected to a partner yet.",
+        )
 
     ping = Ping(
         sender_id=current_user.id,
-        receiver_id=current_user.partner_id,
+        receiver_id=partner_user.id,
         ping_type=payload.ping_type,
     )
 

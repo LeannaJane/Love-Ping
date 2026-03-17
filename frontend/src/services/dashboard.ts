@@ -13,6 +13,7 @@ export interface FeedItem {
   type: "ping" | "mood";
   text: string;
   created_at: string;
+  is_mine: boolean;
 }
 
 export interface DashboardData {
@@ -30,6 +31,28 @@ export interface DashboardData {
 
 export async function getDashboard(): Promise<DashboardData> {
   const response = await fetchWithRetry(`${API_URL}/dashboard`);
+  return handleResponse(response);
+}
+
+export async function connectWithInviteCode(invite_code: string) {
+  const response = await fetchWithRetry(`${API_URL}/connections/connect`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      invite_code,
+    }),
+  });
+
+  return handleResponse(response);
+}
+
+export async function unlinkPartner() {
+  const response = await fetchWithRetry(`${API_URL}/connections/unlink`, {
+    method: "DELETE",
+  });
+
   return handleResponse(response);
 }
 
