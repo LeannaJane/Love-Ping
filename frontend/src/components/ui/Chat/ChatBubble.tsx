@@ -7,8 +7,7 @@ type ChatBubbleProps = {
 
 function formatTime(value: string) {
   const date = new Date(value);
-
-  return date.toLocaleString([], {
+  return date.toLocaleString("en-GB", {
     month: "short",
     day: "numeric",
     hour: "numeric",

@@ -16,6 +16,7 @@ export default function MoodButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-label={label}
       className="rounded-2xl border border-pink-200 bg-rose-50 px-4 py-4 text-center transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <div className="text-2xl">{emoji}</div>

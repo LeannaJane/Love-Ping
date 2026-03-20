@@ -12,7 +12,7 @@ export default function AuthCard({
   children,
 }: AuthCardProps) {
   return (
-    <div className="w-full max-w-md rounded-[2rem] border border-rose-100 bg-pink p-8 shadow-xl shadow-rose-100">
+    <div className="w-full max-w-md rounded-[2rem] border border-rose-100 bg-pink-50 p-8 shadow-xl shadow-rose-100">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight text-rose-600">
           {title}
