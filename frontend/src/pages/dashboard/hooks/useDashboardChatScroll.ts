@@ -10,6 +10,6 @@ export function useDashboardChatScroll(
       return;
     }
 
-    chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    chatRef.current.scrollTop = 0;
   }, [chatRef, dashboard?.recent_activity]);
 }

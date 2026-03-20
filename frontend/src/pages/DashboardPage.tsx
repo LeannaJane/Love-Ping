@@ -24,7 +24,7 @@ import StatCard from "../components/ui/Dashboard/StatCard";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const chatRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement | null>(null);
 
   const [user, setUser] = useState<User | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);

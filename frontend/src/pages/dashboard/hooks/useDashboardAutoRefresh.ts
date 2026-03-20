@@ -11,7 +11,7 @@ export function useDashboardAutoRefresh(
       loadDashboard().catch((error) => {
         console.error("Auto-refresh dashboard error:", error);
       });
-    }, 3000);
+    }, 30000);
     const handleFocus = () => {
       loadDashboard().catch((error) => {
         console.error("Focus refresh dashboard error:", error);
