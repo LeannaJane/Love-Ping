@@ -1,8 +1,8 @@
-import CTASection from "../components/CTASection";
-import FeaturesSection from "../components/FeaturesSection";
-import HeroSection from "../components/HeroSection";
-import Information from "../components/Information";
-import LandingHeader from "../components/LandingHeader";
+import CTASection from "../components/landing/CTASection";
+import FeaturesSection from "../components/landing/FeaturesSection";
+import HeroSection from "../components/landing/HeroSection";
+import Information from "../components/landing/Information";
+import LandingHeader from "../components/landing/LandingHeader";
 
 export default function LovePingHomePage() {
   const features = [
